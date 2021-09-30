@@ -111,9 +111,9 @@ class Point(object):
 
     def __init__(self, curve, x, y):
         self.curve = curve
-        self.x = x
-        self.y = y
         self.p = self.curve.p
+        self.x = x % self.p  # Reduce x and y to p when initialising, for convenience
+        self.y = y % self.p
         self.on_curve = True
         if not self.curve.on_curve(self.x, self.y):
             warnings.warn("Point (%d, %d) is not on curve \"%s\"" % (self.x, self.y, self.curve))
@@ -127,7 +127,7 @@ class Point(object):
     def negate(self):
         # Write a function that negates a Point object and returns the resulting Point object
         # Ths is an optional extension and is not evaluated
-        return Point(self.curve, self.x, -self.y % self.curve.p)
+        return Point(self.curve, self.x, -self.y)
 
     def double(self):
         # Write a function that doubles a Point object and returns the resulting Point object
@@ -143,24 +143,32 @@ class Point(object):
             return Point(self.curve, self.x, self.y)
 
         _lambda = 0
-        y_delta = (self.y - other.y) % self.curve.p
-        x_delta = (self.x - other.x) % self.curve.p
+        y_delta = (self.y - other.y) % self.p
+        x_delta = (self.x - other.x) % self.p
         # the only difference in the two cases is the slope(lambda), so simply reuse the code
 
         if y_delta == 0 and x_delta == 0:
-            _lambda = \
-                ((3 * pow(self.x, 2, self.curve.p) + self.curve.a) % self.curve.p) // ((2 * self.y) % self.curve.p)
+            # Prevent division by 0
+            if self.y == 0:
+                return PointInf(self.curve)
+
+            # take advantage of mod inverses, division is a thing of the past
+            # (2y)^-1
+            _lambda = ((3 * pow(self.x, 2, self.p) + self.curve.a) % self.p) * mod_inv(2 * self.y)
+            _lambda %= self.p
         else:
 
             # Division by 0, should go to infinity
             # Covers P + (-P) = O
             if x_delta == 0:
-                return PointInf
+                return PointInf(self.curve)
 
-            _lambda = y_delta // x_delta
+            # mod_inv at work again
+            _lambda = y_delta * mod_inv(x_delta, self.p)
+            _lambda %= self.p
 
-        x_prime = (pow(_lambda, 2, self.curve.p) - self.x - other.x) % self.curve.p
-        y_prime = - (self.y + _lambda * (x_prime - self.x)) % self.curve.p
+        x_prime = (pow(_lambda, 2, self.p) - self.x - other.x) % self.p
+        y_prime = - (self.y + _lambda * (x_prime - self.x)) % self.p
 
         return Point(self.curve, x_prime, y_prime)
 
