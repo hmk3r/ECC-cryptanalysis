@@ -3,6 +3,7 @@ import random
 import warnings
 import hashlib
 
+
 # Euclidean algorithm for gcd computation
 def egcd(a, b):
     if a == 0:
@@ -10,6 +11,7 @@ def egcd(a, b):
     else:
         g, y, x = egcd(b % a, a)
         return g, x - (b // a) * y, y
+
 
 # Modular inversion computation
 def mod_inv(a, p):
@@ -21,12 +23,14 @@ def mod_inv(a, p):
     else:
         return x % p
 
+
 # Function to map a message to a bit string
 def hash_message_to_bits(msg):
     h = hashlib.sha256()
     h.update(msg.encode())
     h_as_bits = ''.join(format(byte, '08b') for byte in h.digest())
-    return h_as_bits 
+    return h_as_bits
+
 
 # Function to map a truncated bit string to an integer modulo q
 def bits_to_int(h_as_bits, q):
@@ -34,11 +38,12 @@ def bits_to_int(h_as_bits, q):
     len = int(math.log(q, 2) + 1)
     for i in range(len):
         val = val * 2
-        if(h_as_bits[i] == '1'):
+        if (h_as_bits[i] == '1'):
             val = val + 1
     return val % q
 
-# An elliptic curve is represented as an object of type Curve. 
+
+# An elliptic curve is represented as an object of type Curve.
 # Note that for this lab, we use the short Weierstrass form of representation.
 class Curve(object):
 
@@ -51,42 +56,53 @@ class Curve(object):
         self.q = q
 
     def is_singular(self):
-        return (4 * self.a**3 + 27 * self.b**2) % self.p == 0
+        return (4 * self.a ** 3 + 27 * self.b ** 2) % self.p == 0
 
     def on_curve(self, x, y):
-        return (y**2 - x**3 - self.a * x - self.b) % self.p == 0
+        return (y ** 2 - x ** 3 - self.a * x - self.b) % self.p == 0
 
     def is_equal(self, other):
         if not isinstance(other, Curve):
             return False
         return self.a == other.a and self.b == other.b and self.p == other.p
 
-# A point at infinity on an elliptic curve is represented separately as an object of type PointInf. 
+
+# A point at infinity on an elliptic curve is represented separately as an object of type PointInf.
 # We make this distinction between a point at infinity and a regular point purely for the ease of implementation.
 class PointInf(object):
 
-    def __init__(self, curve):
+    def __init__(self, curve, is_negative=False):
         self.curve = curve
+        self.is_negative = is_negative
 
     def is_equal(self, other):
         if not isinstance(other, PointInf):
             return False
         return self.curve.is_equal(other.curve)
-    
+
     def negate(self):
         # Write a function that negates a PointInf object.        
         # Ths is an optional extension and is not evaluated
-        raise NotImplementedError()
+        return PointInf(self.curve, is_negative=(not self.is_negative))
 
     def double(self):
         # Write a function that doubles a PointInf object.
-        raise NotImplementedError()
+        return PointInf(self.curve, is_negative=self.is_negative)
 
     def add(self, other):
         # Write a function that adds a Point object (or a PointInf object) to a PointInf object. 
         # See below for the description of a Point object
-        # Make sure to output the correct kind of object depending on whether "other" is a Point object or a PointInf object 
-        raise NotImplementedError()
+        # Make sure to output the correct kind of object depending on whether "other" is a
+        # Point object or a PointInf object
+
+        if not self.curve.is_equal(other.curve):
+            raise ArithmeticError("Cannot add points that are on different curves")
+
+        if isinstance(other, PointInf):
+            return self.double()
+
+        if isinstance(other, Point):
+            return Point(other.curve, other.x, other.y)
 
 
 # A point on an elliptic curve is represented as an object of type Point. 
@@ -107,32 +123,65 @@ class Point(object):
         if not isinstance(other, Point):
             return False
         return self.curve.is_equal(other.curve) and self.x == other.x and self.y == other.y
-    
+
     def negate(self):
         # Write a function that negates a Point object and returns the resulting Point object
         # Ths is an optional extension and is not evaluated
-        raise NotImplementedError()
+        return Point(self.curve, self.x, -self.y % self.curve.p)
 
     def double(self):
         # Write a function that doubles a Point object and returns the resulting Point object
-        raise NotImplementedError()
+        self.add(self, self)
 
     def add(self, other):
-        # Write a function that adds a Point object (or a PointInf object) to the current Point object and returns the resulting Point object
-        raise NotImplementedError()
+        # Write a function that adds a Point object (or a PointInf object) to the current Point object and
+        # returns the resulting Point object
+        if not self.curve.is_equal(other.curve):
+            raise ArithmeticError("Cannot add points that are on different curves")
+
+        if isinstance(other, PointInf):
+            return Point(self.curve, self.x, self.y)
+
+        _lambda = 0
+        y_delta = (self.y - other.y) % self.curve.p
+        x_delta = (self.x - other.x) % self.curve.p
+        # the only difference in the two cases is the slope(lambda), so simply reuse the code
+
+        if y_delta == 0 and x_delta == 0:
+            _lambda = \
+                ((3 * pow(self.x, 2, self.curve.p) + self.curve.a) % self.curve.p) // ((2 * self.y) % self.curve.p)
+        else:
+
+            # Division by 0, should go to infinity
+            # Covers P + (-P) = O
+            if x_delta == 0:
+                return PointInf
+
+            _lambda = y_delta // x_delta
+
+        x_prime = (pow(_lambda, 2, self.curve.p) - self.x - other.x) % self.curve.p
+        y_prime = - (self.y + _lambda * (x_prime - self.x)) % self.curve.p
+
+        return Point(self.curve, x_prime, y_prime)
 
     def scalar_multiply(self, scalar):
-        # Write a function that performs a scalar multiplication on the current Point object and returns the resulting Point object 
+        # Write a function that performs a scalar multiplication on the current Point object and
+        # returns the resulting Point object
         # Make sure to check that the scalar is of type int or long
         # Your function need not be "constant-time"
-        raise NotImplementedError()
+        # raise NotImplementedError()
+        # TODO: Implemement
+        return Point(self.curve, self.x, self.y)
 
     def scalar_multiply_Montgomery_Ladder(self, scalar):
-        # Write a function that performs a "constant-time" scalar multiplication on the current Point object and returns the resulting Point object 
+        # Write a function that performs a "constant-time" scalar multiplication on the current
+        # Point object and returns the resulting Point object
         # Make sure to check that the scalar is of type int or long
         # Implement an elementary timer to check that your implementation is indeed constant-time
         # This is not graded but is an extension for your to try out on your own
-        raise NotImplementedError()
+        # raise NotImplementedError()
+        # TODO: Possibly Implemement
+        return Point(self.curve, self.x, self.y)
 
 
 # The parameters for an ECDSA scheme are represented as an object of type ECDSA_Params
@@ -146,22 +195,34 @@ class ECDSA_Params(object):
 
 def KeyGen(params):
     # Write a function that takes as input an ECDSA_Params object and outputs the key pair (x, Q)
-    raise NotImplementedError()
+    # raise NotImplementedError()
+    # TODO: Implemement
+    return 0xdeadbeef, 0xdeadbeef
+
 
 def Sign_FixedNonce(params, k, x, msg):
-    # Write a function that takes as input an ECDSA_Params object, a fixed nonce k, a signing key x, and a message msg, and outputs a signature (r, s)
-    raise NotImplementedError()
+    # Write a function that takes as input an ECDSA_Params object, a fixed nonce k,
+    # a signing key x, and a message msg, and outputs a signature (r, s)
+    # raise NotImplementedError()
+    # TODO: Implemement
+    return 0xdeadbeef, 0xdeadbeef
 
 def Sign(params, x, msg):
-    # Write a function that takes as input an ECDSA_Params object, a signing key x, and a message msg, and outputs a signature (r, s)
+    # Write a function that takes as input an ECDSA_Params object, a signing key x,
+    # and a message msg, and outputs a signature (r, s)
     # The nonce is to be generated uniformly at random in the appropriate range
-    raise NotImplementedError()
+    # raise NotImplementedError()
+    # TODO: Implemement
+    return 0xdeadbeef, 0xdeadbeef
 
 def Verify(params, Q, msg, r, s):
-    # Write a function that takes as input an ECDSA_Params object, a verification key Q, a message msg, and a signature (r, s)
+    # Write a function that takes as input an ECDSA_Params object, a verification key Q,
+    # a message msg, and a signature (r, s)
     # The output should be either 0 (indicating failure) or 1 (indicating success)
-    raise NotImplementedError()
-
+    # raise NotImplementedError()
+    # TODO: Implemement
+    return 0
 
 from module_1_ECC_ECDSA_tests import run_tests
+
 run_tests(ECDSA_Params, Point, KeyGen, Sign, Sign_FixedNonce, Verify)
