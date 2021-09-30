@@ -224,17 +224,31 @@ class ECDSA_Params(object):
 
 def KeyGen(params):
     # Write a function that takes as input an ECDSA_Params object and outputs the key pair (x, Q)
-    # raise NotImplementedError()
-    # TODO: Implemement
-    return 0xdeadbeef, 0xdeadbeef
+    x = random.randrange(1, params.q)
+    Q = params.P.scalar_multiply(x)
+
+    return x, Q
 
 
 def Sign_FixedNonce(params, k, x, msg):
     # Write a function that takes as input an ECDSA_Params object, a fixed nonce k,
     # a signing key x, and a message msg, and outputs a signature (r, s)
-    # raise NotImplementedError()
-    # TODO: Implemement
-    return 0xdeadbeef, 0xdeadbeef
+
+    h = bits_to_int(hash_message_to_bits(msg), params.q)
+    P_prim = params.P.scalar_multiply(k)
+    r = P_prim.x % params.q
+
+    if r == 0:
+        return None
+
+    k_inv = mod_inv(k, params.q)
+    s = k_inv * ((h + (x * r) % params.q) % params.q)
+    s %= params.q
+
+    if s == 0:
+        return None
+
+    return r, s
 
 def Sign(params, x, msg):
     # Write a function that takes as input an ECDSA_Params object, a signing key x,
