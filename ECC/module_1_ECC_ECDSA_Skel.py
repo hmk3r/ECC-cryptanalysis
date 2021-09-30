@@ -131,7 +131,7 @@ class Point(object):
 
     def double(self):
         # Write a function that doubles a Point object and returns the resulting Point object
-        self.add(self, self)
+        return self.add(self)
 
     def add(self, other):
         # Write a function that adds a Point object (or a PointInf object) to the current Point object and
@@ -154,7 +154,7 @@ class Point(object):
 
             # take advantage of mod inverses, division is a thing of the past
             # (2y)^-1
-            _lambda = ((3 * pow(self.x, 2, self.p) + self.curve.a) % self.p) * mod_inv(2 * self.y)
+            _lambda = ((3 * pow(self.x, 2, self.p) + self.curve.a) % self.p) * mod_inv(2 * self.y, self.p)
             _lambda %= self.p
         else:
 
@@ -177,9 +177,18 @@ class Point(object):
         # returns the resulting Point object
         # Make sure to check that the scalar is of type int or long
         # Your function need not be "constant-time"
-        # raise NotImplementedError()
-        # TODO: Implemement
-        return Point(self.curve, self.x, self.y)
+
+        # return self.scalar_multiply_Montgomery_Ladder(scalar)
+
+        scalar = scalar % self.p
+        result = PointInf(self.curve)
+
+        for b in format(scalar, "b"):
+            result = result.double()
+            if b == "1":
+                result = result.add(self)
+
+        return result
 
     def scalar_multiply_Montgomery_Ladder(self, scalar):
         # Write a function that performs a "constant-time" scalar multiplication on the current
@@ -187,9 +196,21 @@ class Point(object):
         # Make sure to check that the scalar is of type int or long
         # Implement an elementary timer to check that your implementation is indeed constant-time
         # This is not graded but is an extension for your to try out on your own
-        # raise NotImplementedError()
-        # TODO: Possibly Implemement
-        return Point(self.curve, self.x, self.y)
+
+        scalar = scalar % self.p
+        # avoid modifying the current state of the point, so make a copy of it
+        p = Point(self.curve, self.x, self.y)
+        result = PointInf(self.curve)
+
+        for b in format(scalar, "b"):
+            if b == "1":
+                result = result.add(p)
+                p = p.double()
+            else:
+                p = p.add(result)
+                result = result.double()
+
+        return result
 
 
 # The parameters for an ECDSA scheme are represented as an object of type ECDSA_Params
