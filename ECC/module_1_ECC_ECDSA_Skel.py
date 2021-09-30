@@ -250,21 +250,45 @@ def Sign_FixedNonce(params, k, x, msg):
 
     return r, s
 
+
 def Sign(params, x, msg):
     # Write a function that takes as input an ECDSA_Params object, a signing key x,
     # and a message msg, and outputs a signature (r, s)
     # The nonce is to be generated uniformly at random in the appropriate range
-    # raise NotImplementedError()
-    # TODO: Implemement
-    return 0xdeadbeef, 0xdeadbeef
+    k = random.randrange(1, params.q)
+
+    result = None
+
+    while result is None:
+        result = Sign_FixedNonce(params, k, x, msg)
+
+    return result
+
 
 def Verify(params, Q, msg, r, s):
     # Write a function that takes as input an ECDSA_Params object, a verification key Q,
     # a message msg, and a signature (r, s)
     # The output should be either 0 (indicating failure) or 1 (indicating success)
-    # raise NotImplementedError()
-    # TODO: Implemement
+
+    if r < 1 or r >= params.q or s < 1 or s >= params.q:
+        return 0
+
+    w = mod_inv(s, params.q)
+    h = bits_to_int(hash_message_to_bits(msg), params.q)
+
+    u1 = (w * h) % params.q
+    u2 = (w * r) % params.q
+
+    uP = params.P.scalar_multiply(u1)
+    uQ = Q.scalar_multiply(u2)
+
+    Z = uP.add(uQ)
+
+    if Z.x % params.q == r:
+        return 1
+
     return 0
+
 
 from module_1_ECC_ECDSA_tests import run_tests
 
