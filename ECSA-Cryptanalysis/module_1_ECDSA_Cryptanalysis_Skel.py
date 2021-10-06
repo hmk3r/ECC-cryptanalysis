@@ -122,7 +122,14 @@ def setup_hnp_all_samples(N, L, num_Samples, listoflists_k_MSB, list_h, list_r, 
     # Hint: Use the function you implemented above to set up the t and u values for each instance
     # In the case of EC-Schnorr, list_r may be set to list_h
 
-    return [0, 0], [0, 0]
+    t_all, u_all = list(), list()
+    for i in range(num_Samples):
+        t, u = setup_hnp_single_sample(N, L, listoflists_k_MSB[i], list_h[i], list_r[i], list_s[i], q,
+                                       givenbits=givenbits, algorithm=algorithm)
+        t_all.append(t)
+        u_all.append(u)
+
+    return t_all, u_all
 
 
 def hnp_to_cvp(N, L, num_Samples, list_t, list_u, q):
