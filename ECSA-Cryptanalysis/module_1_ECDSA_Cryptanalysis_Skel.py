@@ -9,15 +9,33 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ec
 
 
+# If "egcd" triggers a plagiarism warning, it's probably because I also took
+# MATH-489 Number theory in cryptography at EPFL, where I coded pretty much the same thing
 def egcd(a, b):
-    # Implement the Euclidean algorithm for gcd computation
-    raise NotImplementedError()
+    if b > a:
+        a, b = b, a
+        u, last_u = 1, 0
+        v, last_v = 0, 1
+    else:
+        u, last_u = 0, 1
+        v, last_v = 1, 0
+
+    while b != 0:
+        q = a // b
+        a, b = b, a % b
+        u, last_u = last_u - q * u, u
+        v, last_v = last_v - q * v, v
+
+    return a, last_u, last_v
 
 
 def mod_inv(a, p):
-    # Implement a function to compute the inverse of a modulo p
-    # Hint: Use the gcd algorithm implemented above
-    raise NotImplementedError()
+    a = a % p
+    _gcd, b1, _ = egcd(a, p)
+    if _gcd != 1:
+        raise ArithmeticError("Mod inverse does not exist")
+    else:
+        return b1 % p
 
 
 def check_x(x, Q):
@@ -41,7 +59,11 @@ def recover_x_known_nonce(k, h, r, s, q):
     # Implement the "known nonce" cryptanalytic attack on ECDSA
     # The function is given the nonce k, (h, r, s) and the base point order q
     # The function should compute and return the secret signing key x
-    raise NotImplementedError()
+
+    lhs = (k * s) % q - h
+    lhs %= q
+
+    return (lhs * mod_inv(r, q)) % q
 
 
 def recover_x_repeated_nonce(h_1, r_1, s_1, h_2, r_2, s_2, q):
@@ -49,7 +71,14 @@ def recover_x_repeated_nonce(h_1, r_1, s_1, h_2, r_2, s_2, q):
     # The function is given the (hashed-message, signature) pairs (h_1, r_1, s_1)
     # and (h_2, r_2, s_2) generated using the same nonce
     # The function should compute and return the secret signing key x
-    return 0
+
+    # As seen in the lecture slides
+    h_s = (h_1 * s_2) % q - (h_2 * s_1) % q
+    h_s %= q
+    r_s = (r_2 * s_1) % q - (r_1 * s_2) % q
+    r_s %= q
+
+    return (h_s * mod_inv(r_s, q)) % q
 
 
 def MSB_to_Padded_Int(N, L, list_k_MSB):
@@ -140,12 +169,13 @@ def recover_x_partial_nonce_CVP(Q, N, L, num_Samples, listoflists_k_MSB, list_h,
     # using the in-built CVP-solver functions from the fpylll library
     # The function is partially implemented for you. Note that it invokes some of the
     # functions that you have already implemented
-    list_t, list_u = setup_hnp_all_samples(N, L, num_Samples, listoflists_k_MSB, list_h, list_r, list_s, q)
-    cvp_basis_B, cvp_list_u = hnp_to_cvp(N, L, num_Samples, list_t, list_u, q)
-    v_List = solve_cvp(cvp_basis_B, cvp_list_u)
-    # The function should recover the secret signing key x from the output of the CVP solver
-    # and return it
     return 0
+    # list_t, list_u = setup_hnp_all_samples(N, L, num_Samples, listoflists_k_MSB, list_h, list_r, list_s, q)
+    # cvp_basis_B, cvp_list_u = hnp_to_cvp(N, L, num_Samples, list_t, list_u, q)
+    # v_List = solve_cvp(cvp_basis_B, cvp_list_u)
+    # # The function should recover the secret signing key x from the output of the CVP solver
+    # # and return it
+    # return 0
 
 
 def recover_x_partial_nonce_SVP(Q, N, L, num_Samples, listoflists_k_MSB, list_h, list_r, list_s, q, givenbits="msbs",
@@ -154,12 +184,13 @@ def recover_x_partial_nonce_SVP(Q, N, L, num_Samples, listoflists_k_MSB, list_h,
     # in-built CVP-solver functions from the fpylll library
     # The function is partially implemented for you. Note that it invokes some of the functions
     # that you have already implemented
-    list_t, list_u = setup_hnp_all_samples(N, L, num_Samples, listoflists_k_MSB, list_h, list_r, list_s, q)
-    cvp_basis_B, cvp_list_u = hnp_to_cvp(N, L, num_Samples, list_t, list_u, q)
-    svp_basis_B = cvp_to_svp(N, L, num_Samples, cvp_basis_B, cvp_list_u)
-    list_of_f_List = solve_svp(svp_basis_B)
-    # The function should recover the secret signing key x from the output of the SVP solver and return it
     return 0
+    # list_t, list_u = setup_hnp_all_samples(N, L, num_Samples, listoflists_k_MSB, list_h, list_r, list_s, q)
+    # cvp_basis_B, cvp_list_u = hnp_to_cvp(N, L, num_Samples, list_t, list_u, q)
+    # svp_basis_B = cvp_to_svp(N, L, num_Samples, cvp_basis_B, cvp_list_u)
+    # list_of_f_List = solve_svp(svp_basis_B)
+    # The function should recover the secret signing key x from the output of the SVP solver and return it
+
 
 
 # testing code: do not modify
