@@ -125,10 +125,19 @@ def setup_hnp_single_sample(N, L, list_k_MSB, h, r, s, q, givenbits="msbs", algo
         return t, u
 
     def ecschnorr_msbs():
-        return 0
+        t = h
+        u = (MSB_to_Padded_Int(N, L, list_k_MSB) - s) % q
+
+        return t, u
 
     def ecschnorr_lsbs():
-        return 0
+        pow_2_L_inv = mod_inv(int(2 ** L), q)
+
+        t = (h * pow_2_L_inv) % q
+        u = (pow_2_L_inv * LSB_to_Int(list_k_MSB)) % q - (pow_2_L_inv * s) % q
+        u %= q
+
+        return t, u
 
     funcs = {x.__name__ : x for x in (ecdsa_msbs, ecdsa_lsbs, ecschnorr_msbs, ecschnorr_lsbs)}
 
@@ -227,9 +236,6 @@ def recover_x_partial_nonce_CVP(Q, N, L, num_Samples, listoflists_k_MSB, list_h,
     # using the in-built CVP-solver functions from the fpylll library
     # The function is partially implemented for you. Note that it invokes some of the
     # functions that you have already implemented
-
-    if algorithm != "ecdsa":
-        return 0
 
     list_t, list_u = setup_hnp_all_samples(
         N, L, num_Samples, listoflists_k_MSB, list_h, list_r, list_s, q,
