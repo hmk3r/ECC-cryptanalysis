@@ -29,4 +29,5 @@ for i, MSB in enumerate(MSBs):
     t_res, u_res = setup_hnp_single_sample(N, L, MSB, h[i], r[i], s[i], q)
     res.append(True if t_res == t[i] and u_res == u[i] else False)
 
+print('HNP SINGLE SAMPLE: ', end='')
 print('All Good!' if all(res) else 'Cucked')
