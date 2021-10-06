@@ -107,7 +107,7 @@ def setup_hnp_single_sample(N, L, list_k_MSB, h, r, s, q, givenbits="msbs", algo
     t = (r * s_inv) % q
     z = (h * s_inv) % q
 
-    u = MSB_to_Padded_Int(list_k_MSB) - z
+    u = MSB_to_Padded_Int(N, L, list_k_MSB) - z
 
     return t, u
 
