@@ -101,7 +101,14 @@ def setup_hnp_single_sample(N, L, list_k_MSB, h, r, s, q, givenbits="msbs", algo
     # along with (h, r, s) and the base point order q
     # The function should return (t, u) computed as described in the lectures
     # In the case of EC-Schnorr, r may be set to h
-    return 0, 0
+    s_inv = mod_inv(s, q)
+    t = (r * s_inv) % q
+    z = (h * s_inv) % q
+
+    a = int(''.join(list(map(str, list_k_MSB))), 2)
+    u = a * int(2 ** (N - L)) + int(2 ** (N - L - 1)) - z
+
+    return t, u
 
 
 def setup_hnp_all_samples(N, L, num_Samples, listoflists_k_MSB, list_h, list_r, list_s, q,
@@ -113,7 +120,8 @@ def setup_hnp_all_samples(N, L, num_Samples, listoflists_k_MSB, list_h, list_r, 
     # The function should return a list of t values and a list of u values computed as described in the lectures
     # Hint: Use the function you implemented above to set up the t and u values for each instance
     # In the case of EC-Schnorr, list_r may be set to list_h
-    return 0
+
+    return [0, 0], [0, 0]
 
 
 def hnp_to_cvp(N, L, num_Samples, list_t, list_u, q):
