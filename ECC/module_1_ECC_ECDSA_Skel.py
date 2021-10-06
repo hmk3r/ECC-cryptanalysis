@@ -265,6 +265,7 @@ def Sign(params, x, msg):
     return result
 
 
+# TODO: Avoid invalid curves, check order of Q
 def Verify(params, Q, msg, r, s):
     # Write a function that takes as input an ECDSA_Params object, a verification key Q,
     # a message msg, and a signature (r, s)
