@@ -178,7 +178,10 @@ def solve_cvp(cvp_basis_B, cvp_list_u):
     # The function should output the solution vector v (to be implemented as a list)
     # NOTE: The basis matrix B should be processed appropriately before being passes to
     # the fpylll CVP-solver. See lab sheet for more details
-    return 0
+
+    reduced_basis_b = LLL.reduction(IntegerMatrix.from_matrix(cvp_basis_B))
+
+    return CVP.closest_vector(reduced_basis_b, cvp_list_u)
 
 
 def solve_svp(svp_basis_B):
@@ -201,13 +204,20 @@ def recover_x_partial_nonce_CVP(Q, N, L, num_Samples, listoflists_k_MSB, list_h,
     # using the in-built CVP-solver functions from the fpylll library
     # The function is partially implemented for you. Note that it invokes some of the
     # functions that you have already implemented
-    return 0
-    # list_t, list_u = setup_hnp_all_samples(N, L, num_Samples, listoflists_k_MSB, list_h, list_r, list_s, q)
-    # cvp_basis_B, cvp_list_u = hnp_to_cvp(N, L, num_Samples, list_t, list_u, q)
-    # v_List = solve_cvp(cvp_basis_B, cvp_list_u)
-    # # The function should recover the secret signing key x from the output of the CVP solver
-    # # and return it
-    # return 0
+
+    if algorithm != "ecdsa" or givenbits != "msbs":
+        return 0
+
+    list_t, list_u = setup_hnp_all_samples(N, L, num_Samples, listoflists_k_MSB, list_h, list_r, list_s, q)
+    cvp_basis_B, cvp_list_u = hnp_to_cvp(N, L, num_Samples, list_t, list_u, q)
+    v_List = solve_cvp(cvp_basis_B, cvp_list_u)
+
+    x = v_List[-1]
+    return x % q
+
+    # The function should recover the secret signing key x from the output of the CVP solver
+    # and return it
+
 
 
 def recover_x_partial_nonce_SVP(Q, N, L, num_Samples, listoflists_k_MSB, list_h, list_r, list_s, q, givenbits="msbs",
