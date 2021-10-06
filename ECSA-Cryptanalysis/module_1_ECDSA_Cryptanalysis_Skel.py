@@ -141,7 +141,23 @@ def hnp_to_cvp(N, L, num_Samples, list_t, list_u, q):
     # and the CVP target vector u (to be implemented as a list)
     # NOTE: The basis matrix B and the CVP target vector u should be scaled appropriately.
     # Refer lecture slides and lab sheet for more details
-    return 0
+
+    b_cvp = list()
+    matrix_n = num_Samples + 1
+
+    scale_factor = int(2 ** (L + 1))
+    scaled_q = q * scale_factor
+
+    for i in range(matrix_n - 1):
+        row = [0] * matrix_n
+        row[i] = scaled_q
+        b_cvp.append(row)
+
+    b_cvp.append([x * scale_factor for x in list_t] + [1])
+
+    u_cvp = [x * scale_factor for x in list_u] + [0]
+
+    return b_cvp, u_cvp
 
 
 def cvp_to_svp(N, L, num_Samples, cvp_basis_B, cvp_list_u):
