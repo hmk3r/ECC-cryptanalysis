@@ -85,7 +85,9 @@ def MSB_to_Padded_Int(N, L, list_k_MSB):
     # Implement a function that does the following: 
     # Let a is the integer represented by the L most significant bits of the nonce k 
     # The function should return a.2^{N - L} + 2^{N -L -1}
-    return 0
+    a = int(''.join(list(map(str, list_k_MSB))), 2)
+
+    return a * int(2 ** (N - L)) + int(2 ** (N - L - 1))
 
 
 def LSB_to_Int(list_k_LSB):
@@ -105,8 +107,7 @@ def setup_hnp_single_sample(N, L, list_k_MSB, h, r, s, q, givenbits="msbs", algo
     t = (r * s_inv) % q
     z = (h * s_inv) % q
 
-    a = int(''.join(list(map(str, list_k_MSB))), 2)
-    u = a * int(2 ** (N - L)) + int(2 ** (N - L - 1)) - z
+    u = MSB_to_Padded_Int(list_k_MSB) - z
 
     return t, u
 
