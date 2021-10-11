@@ -7,6 +7,8 @@ from fpylll import CVP
 from fpylll import SVP
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ec
+import numpy as np
+from decimal import Decimal
 
 
 # If "egcd" triggers a plagiarism warning, it's probably because I also took
@@ -103,6 +105,7 @@ def setup_hnp_single_sample(N, L, list_k_MSB, h, r, s, q, givenbits="msbs", algo
     # along with (h, r, s) and the base point order q
     # The function should return (t, u) computed as described in the lectures
     # In the case of EC-Schnorr, r may be set to h
+    list_k_MSB = list_k_MSB[:L]
     s_inv = mod_inv(s, q)
 
     def ecdsa_msbs():
@@ -200,7 +203,18 @@ def cvp_to_svp(N, L, num_Samples, cvp_basis_B, cvp_list_u):
     # The function should use the Kannan embedding technique to output the corresponding
     # SVP basis matrix B' of apropriate dimensions.
     # The SVP basis matrix B' should again be implemented as a nested list
-    return 0
+
+    # z_norm = int((2 ** N)) // int(2 ** (L + 1))
+    # fm_norm = int(math.sqrt(num_Samples + 1)) * z_norm
+    # m = int(math.sqrt(fm_norm // 2))
+
+    # Somehow the simplest things I could think of is the one yielding solutions....
+    # Hours wasted: ~14
+    m = int(2 ** N)
+    svp_basis = [x[:] + [0] for x in cvp_basis_B]
+    svp_basis.append(cvp_list_u[:] + [m])
+
+    return svp_basis
 
 
 def solve_cvp(cvp_basis_B, cvp_list_u):
@@ -227,7 +241,18 @@ def solve_svp(svp_basis_B):
     #       vector (or even a later one).
     # If required, figure out how to get the in-built SVP-solver functions
     # from the fpylll library to return the second (or later) shortest vector
-    return 0
+
+    reduced = IntegerMatrix.from_matrix(svp_basis_B)
+
+    # If something breaks, better return something
+    try:
+        SVP.shortest_vector(reduced)
+    except Exception:
+        pass
+
+    # get all solutions and search through them, we might be unlucky
+    # make it a list for convenience
+    return [list(v) for v in reduced]
 
 
 def recover_x_partial_nonce_CVP(Q, N, L, num_Samples, listoflists_k_MSB, list_h, list_r, list_s, q, givenbits="msbs",
@@ -251,20 +276,38 @@ def recover_x_partial_nonce_CVP(Q, N, L, num_Samples, listoflists_k_MSB, list_h,
     # and return it
 
 
-
 def recover_x_partial_nonce_SVP(Q, N, L, num_Samples, listoflists_k_MSB, list_h, list_r, list_s, q, givenbits="msbs",
                                 algorithm="ecdsa"):
     # Implement the "repeated nonces" cryptanalytic attack on ECDSA and EC-Schnorr using the
     # in-built CVP-solver functions from the fpylll library
     # The function is partially implemented for you. Note that it invokes some of the functions
     # that you have already implemented
-    return 0
-    # list_t, list_u = setup_hnp_all_samples(N, L, num_Samples, listoflists_k_MSB, list_h, list_r, list_s, q)
-    # cvp_basis_B, cvp_list_u = hnp_to_cvp(N, L, num_Samples, list_t, list_u, q)
-    # svp_basis_B = cvp_to_svp(N, L, num_Samples, cvp_basis_B, cvp_list_u)
-    # list_of_f_List = solve_svp(svp_basis_B)
-    # The function should recover the secret signing key x from the output of the SVP solver and return it
+    list_t, list_u = setup_hnp_all_samples(
+        N, L, num_Samples, listoflists_k_MSB, list_h, list_r, list_s, q,
+        givenbits=givenbits, algorithm=algorithm
+    )
+    cvp_basis_B, cvp_list_u = hnp_to_cvp(N, L, num_Samples, list_t, list_u, q)
+    svp_basis_B = cvp_to_svp(N, L, num_Samples, cvp_basis_B, cvp_list_u)
+    list_of_f_List = solve_svp(svp_basis_B)
 
+    for f in list_of_f_List:
+
+        candidate_x_negate = -f[-2] % q
+        candidate_x = f[-2] % q
+
+        if candidate_x == 0 and candidate_x_negate == 0:
+            continue
+
+        # in my experience, the negated value was the one which was the solution in most, if not
+        # all cases, so check first for it (OpTimAiZeiShan)
+        if check_x(candidate_x_negate, Q):
+            return candidate_x_negate
+
+        if check_x(candidate_x, Q):
+            return candidate_x
+
+    # The function should recover the secret signing key x from the output of the SVP solver and return it
+    return -1
 
 
 # testing code: do not modify
