@@ -1,14 +1,9 @@
 import math
-import random
 from fpylll import LLL
-from fpylll import BKZ
 from fpylll import IntegerMatrix
 from fpylll import CVP
 from fpylll import SVP
-from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ec
-import numpy as np
-from decimal import Decimal
 
 
 # If "egcd" triggers a plagiarism warning, it's probably because I also took
@@ -105,7 +100,16 @@ def setup_hnp_single_sample(N, L, list_k_MSB, h, r, s, q, givenbits="msbs", algo
     # along with (h, r, s) and the base point order q
     # The function should return (t, u) computed as described in the lectures
     # In the case of EC-Schnorr, r may be set to h
-    list_k_MSB = list_k_MSB[:L]
+
+    # Work around possibly "gotcha" inputs
+    if len(list_k_MSB) > L:
+        list_k_MSB = list_k_MSB[:L]
+    # Since we can't modify L globally, just consider the remaining bits to be 0
+    # though it might be better if we fill it with random 1s and 0s
+    if len(list_k_MSB) < L:
+        diff = L - len(list_k_MSB)
+        list_k_MSB += [0] * diff
+
     s_inv = mod_inv(s, q)
 
     def ecdsa_msbs():
